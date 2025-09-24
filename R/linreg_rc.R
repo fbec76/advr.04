@@ -27,7 +27,8 @@
 #'   \item{\code{summary()}}{Prints the summary of the linear regression}
 #' }
 #'
-#' @export
+#' @export linreg
+#' @exportClass linreg
 linreg <- setRefClass(
   "linreg",
   fields = list(

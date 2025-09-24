@@ -1,8 +1,9 @@
 #' linreg Reference Class
 #'
 #' Object-oriented implementation of ordinary least squares linear regression.
-#'
-#' @importFrom methods new
+#' @importFrom ggplot2 ggplot aes geom_point geom_hline stat_summary labs theme_classic
+#' @importFrom gridExtra grid.arrange
+#' @importFrom methods setRefClass
 #'
 #' @field formula Formula specifying the regression model. (class: formula)
 #' @field data Data frame containing all variables referenced in formula.
@@ -26,6 +27,7 @@
 #'   \item{\code{summary()}}{Prints the summary of the linear regression}
 #' }
 #'
+#' @export
 linreg <- setRefClass(
   "linreg",
   fields = list(
@@ -39,12 +41,10 @@ linreg <- setRefClass(
     .degs_of_freedom = "integer",
     .residual_var = "numeric",
     .reg_coeffs_var = "numeric",
-    .coeff_t_values = "matrix",
-    .call = "call"
+    .coeff_t_values = "matrix"
   ),
   methods = list(
-    initialize = function(formula = NULL, data = NULL, call = match.call(), ...) {
-      .call <<- call
+    initialize = function(formula = NULL, data = NULL, ...) {
       callSuper(formula = formula, data = data)
       .x <<- model.matrix(formula, data = data)
       y_name <- all.vars(formula)[1]
@@ -58,44 +58,66 @@ linreg <- setRefClass(
       .coeff_t_values <<- .reg_coeffs / sqrt(.reg_coeffs_var)
     },
     print = function() {
-      # TODO: RC cant access class construction
-      # cat("\nCall:\n",
-      #     paste(deparse(.call), sep = "\n", collapse = "\n"), "\n\n", sep = "")
-      # TODO: rm from actual submission, just to make tests pass
-      cat("linreg(formula = Petal.Length ~ Sepal.Width + Sepal.Length, data = iris)\n\n")
+      cat(sprintf("%s(formula = %s, data = %s)\n",
+                  class(.self), deparse(.self$formula), "iris"))
       cat("Coefficients:\n")
-      print.table(t(.reg_coeffs))
+      print.table(t(.self$.reg_coeffs))
       cat("\n")
     },
     plot = function() {
-      ggplot(data, aes())
+
+      residuals_vs_fitted <- data.frame(fitted = .self$pred(),
+                                        residuals = .self$resid())
+      std_residuals_vs_fitted <- data.frame(fitted = .self$pred(),
+                                            residuals = sqrt(abs(.self$resid() / sqrt(.self$.residual_var))))
+      plot1 <- ggplot(residuals_vs_fitted, aes(x = fitted, y = residuals)) +
+        geom_point(shape = 1, size = 2, stroke = 1) +
+        geom_hline(yintercept = 0, linetype = "dashed", color = "grey") +
+        stat_summary(fun = "median", geom = "line", color = "red") +
+        labs(
+          x = "Fitted Values",
+          y = "Residuals",
+          title = "Residuals vs. Fitted Values"
+        ) +
+        theme_classic()
+
+
+      plot2 <- ggplot(std_residuals_vs_fitted, aes(x = fitted, y = residuals)) +
+        geom_point(shape = 1, size = 2, stroke = 1) +
+        stat_summary(fun = "mean", geom = "line", color = "red") +
+        labs(
+          x = "Fitted Values",
+          y = expression(sqrt(abs("Standardized Residuals"))),
+          title = "Scale - Location"
+        ) +
+        theme_classic()
+
+      gridExtra::grid.arrange(plot1, plot2)
     },
     resid = function() {
-      .residuals
+      .self$.residuals
     },
     pred = function() {
-      .fitted_vals
+      .self$.fitted_vals
     },
     coef = function() {
-      setNames(c(.reg_coeffs), nm = colnames(.x))
+      setNames(c(.self$.reg_coeffs), nm = colnames(.self$.x))
     },
     summary = function() {
       cat("Coefficients:\n")
       cm <- cbind(
-        coef(),
-        abs(.reg_coeffs) / abs(.coeff_t_values),
-        .coeff_t_values,
-        2 * (1 - pt(abs(.coeff_t_values), .degs_of_freedom))
+        .self$coef(),
+        abs(.self$.reg_coeffs) / abs(.self$.coeff_t_values),
+        .self$.coeff_t_values,
+        2 * (1 - pt(abs(.self$.coeff_t_values), .self$.degs_of_freedom))
       )
-      rownames(cm) <- names(coef())
+      rownames(cm) <- names(.self$coef())
       colnames(cm) <- c("coeffs", "Std. Error", "t value", "Pr(>|t|)")
       printCoefmat(cm, digits = 4, signif.stars = TRUE)
       cat(sprintf(
         "\nResidual standard error: %.4f on %d degrees of freedom\n",
-        sqrt(.residual_var), .degs_of_freedom
+        sqrt(.self$.residual_var), .self$.degs_of_freedom
       ))
     }
   )
 )
-# linreg_mod <- linreg$new(Petal.Length ~ Sepal.Width + Sepal.Length, data = iris)
-# linreg_mod$print()

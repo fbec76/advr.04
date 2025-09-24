@@ -1,6 +1,7 @@
 #' linreg Reference Class
 #'
 #' Object-oriented implementation of ordinary least squares linear regression.
+#'
 #' @importFrom ggplot2 ggplot aes geom_point geom_hline stat_summary labs theme_classic
 #' @importFrom gridExtra grid.arrange
 #' @importFrom methods setRefClass

@@ -1,0 +1,69 @@
+---
+title: "advr.04 - Linear Regression"
+output: rmarkdown::html_vignette
+vignette: >
+    %\VignetteIndexEntry{linreg}
+    %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+## Package Overview
+The `advr.04` package provides an implementation of linear regression using the ordinary least squares method.
+The package makes us of the Reference Class system to create a `linreg` class, which can be used for linear regression.
+
+
+## Setup
+```{r setup}
+library(advr.04)
+```
+
+### Creating a linreg Object
+To create a `linreg` object, you can use the `linreg()` function.
+Given is a simple example using the built-in `iris` dataset.
+```{r}
+linreg_mod <- linreg$new(formula = Petal.Length ~ Species, data = iris)
+```
+### Methods
+The `linreg` class has several methods to print information or return statistics.
+
+#### print
+The `print` method displays the formula and the calculated coefficients $\beta$.
+```{r}
+linreg_mod$print()
+```
+
+#### plot
+The `plot` method displays two graph with "Residuals vs Fitted" and "Scale-Location".
+```{r, out.width="60%", fig.height = 5, dpi=500}
+linreg_mod$plot()
+```
+
+#### resid
+The `resid` method returns the vector of residuals $\hat{e}$.
+```{r}
+head(linreg_mod$resid())
+```
+
+#### pred
+The `pred` method returns the vector of predicted values $\hat{y}$.
+```{r}
+head(linreg_mod$pred())
+```
+
+#### coef
+The `coef` method returns a named vector for the coefficients $\beta$.
+```{r}
+linreg_mod$coef()
+```
+
+#### summary
+The `summary` method prints the summary of the linear regression with a coefficient matrix with its residual standard error $\hat{\sigma}$ and degrees of freedom $df$.
+```{r}
+linreg_mod$summary()
+```

@@ -47,6 +47,7 @@ linreg <- setRefClass(
   ),
   methods = list(
     initialize = function(formula = NULL, data = NULL, ...) {
+      stopifnot(inherits(formula, "formula") || is.data.frame(data))
       callSuper(formula = formula, data = data)
       .x <<- model.matrix(formula, data = data)
       y_name <- all.vars(formula)[1]
@@ -60,6 +61,7 @@ linreg <- setRefClass(
       .coeff_t_values <<- .reg_coeffs / sqrt(.reg_coeffs_var)
     },
     print = function() {
+      # name of data parameter unavailable in RC, therefor iris hard-coded
       cat(sprintf("%s(formula = %s, data = %s)\n",
                   class(.self), deparse(.self$formula), "iris"))
       cat("Coefficients:\n")

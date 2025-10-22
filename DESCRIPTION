@@ -18,5 +18,8 @@ Config/testthat/edition: 3
 Imports:
     methods,
     ggplot2,
-    gridExtra
+    gridExtra,
+    dplyr,
+    nycflights13,
+    maps
 VignetteBuilder: knitr

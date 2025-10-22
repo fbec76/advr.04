@@ -12,6 +12,8 @@
 #' \item{coefficients}{A numeric vector of estimated ridge regression coefficients.}
 #' \item{fitted_values}{A numeric vector of fitted values.}
 #'
+#' @importFrom stats model.frame model.response model.matrix
+#'
 #' @export
 ridgereg <- function(formula, data, lambda) {
   stopifnot(inherits(formula, "formula"))
@@ -64,6 +66,8 @@ print.ridgereg <- function(x, ...) {
 #' @param object An object of class \code{"ridgereg"}.
 #' @param newdata Optional data frame for prediction. If omitted, fitted values are returned.
 #' @param ... Additional arguments (ignored).
+#'
+#' @importFrom stats model.matrix delete.response terms
 #'
 #' @return A numeric vector of predicted values.
 #' @export

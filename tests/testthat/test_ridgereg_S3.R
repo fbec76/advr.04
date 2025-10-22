@@ -1,5 +1,6 @@
 test_that("ridgereg coefficients are similar to lm.ridge", {
   data(mtcars)
+  library(MASS)
   lambda <- 0.1
 
   my_model <- ridgereg(mpg ~ wt + hp, data = mtcars, lambda = lambda)

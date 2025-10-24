@@ -38,7 +38,7 @@ library(leaps)
 
 # Load and split data
 
-We use the BostonHousing dataset from the `mlbench` package and split it 80/20 into training and test sets using `caret::createDataPartition()`.
+Use the BostonHousing dataset from the `mlbench` package and split it 80/20 into training and test sets using `caret::createDataPartition()`.
 
 ```{r data-split}
 data(BostonHousing)
@@ -178,7 +178,18 @@ res_test_ridge
 ```
 
 # Summary of results
-On the test set, the full linear and forward-selection models perform identically (RMSE ≈ 4.589, \(R^2\) ≈ 0.761, MAE ≈ 3.365),
+On the test set, the full linear and forward-selection models perform identically
+
+- RMSE \( \approx 4.589\)
+- \(R^2\) \( \approx 0.761\)
+- MAE \( \approx 3.365\)
+
 implying forward selection chose essentially the same predictors.
-Ridge is marginally better on all metrics (RMSE 4.587, \(R^2\) 0.762, MAE 3.363), likely from shrinkage stabilizing coefficients.
+
+Ridge regression is marginally better on all metrics
+
+- RMSE \( \approx 4.587\)
+- \(R^2\) \( \approx 0.762\)
+- MAE \( \approx 3.363\)
+
 These gains are tiny and likely within sampling noise, but show ridge can match or slightly exceed OLS.

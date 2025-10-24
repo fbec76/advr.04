@@ -4,12 +4,10 @@
 \alias{coef.ridgereg}
 \title{Extract coefficients from ridgereg object}
 \usage{
-\method{coef}{ridgereg}(object, ...)
+\method{coef}{ridgereg}(object)
 }
 \arguments{
 \item{object}{An object of class \code{"ridgereg"}.}
-
-\item{...}{Additional arguments (ignored).}
 }
 \value{
 A numeric vector of ridge regression coefficients.

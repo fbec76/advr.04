@@ -12,42 +12,57 @@
 #' \item{coefficients}{A numeric vector of estimated ridge regression coefficients.}
 #' \item{fitted_values}{A numeric vector of fitted values.}
 #'
-#' @importFrom stats model.frame model.response model.matrix
+#' @importFrom stats model.frame model.response model.matrix .getXlevels sd
 #'
 #' @export
 ridgereg <- function(formula, data, lambda) {
   stopifnot(inherits(formula, "formula"))
-  stopifnot(inherits(data, "data.frame"))
+  stopifnot(is.data.frame(data))
   stopifnot(is.numeric(lambda), length(lambda) == 1, lambda >= 0)
 
   mf <- model.frame(formula, data)
   y <- model.response(mf)
-  X <- model.matrix(formula, data)
+  trm <- terms(mf)
+  X <- model.matrix(trm, data = mf)
+  xlevels <- .getXlevels(trm, mf)
+  contrasts <- attr(X, "contrasts")
 
-  X_scaled <- scale(X[, -1], center = TRUE, scale = FALSE)
-  X <- cbind(Intercept = 1, X_scaled)
+  ybar <- mean(y)
+  Xp <- X[, -1, drop = FALSE]
 
-  y_centered <- y - mean(y)
+  x_center <- colMeans(Xp)
 
-  p <- ncol(X)
-  I <- diag(p)
-  I[1, 1] <- 0
+  x_scale <- apply(Xp, 2, sd)
+  x_scale[is.na(x_scale) | x_scale == 0] <- 1
 
-  reg_coeffs <- solve(t(X) %*% X + lambda * I) %*% (t(X) %*% y_centered)
 
-  x_means <- colMeans(model.matrix(formula, data)[, -1])
-  reg_coeffs[1] <- mean(y) - sum(reg_coeffs[-1] * x_means)
+  Z <- sweep(Xp, 2, x_center, "-")
+  Z <- sweep(Z, 2, x_scale, "/")
+  yc <- y - ybar
 
-  fitted_vals <- X %*% reg_coeffs
+  p <- ncol(Z)
+  K <- crossprod(Z) + lambda * diag(p)
+  beta_std <- solve(K, crossprod(Z, yc))
 
-  object <- list(
+  beta <- beta_std / x_scale
+  beta0 <- ybar - sum(beta * x_center)
+  coefs <- c("(Intercept)" = beta0, beta)
+
+  fitted <- drop(X %*% coefs)
+
+  structure(list(
     formula = formula,
-    coefficients = reg_coeffs,
-    fitted_values = fitted_vals
-  )
-  class(object) <- "ridgereg"
-  return(object)
+    terms = trm,
+    xlevels = xlevels,
+    contrasts = contrasts,
+    lambda = lambda,
+    coefficients = coefs,
+    x_center = x_center,
+    x_scale = x_scale,
+    fitted_values = fitted
+  ), class = "ridgereg")
 }
+
 #' Print method for ridgereg objects
 #'
 #' @param x An object of class \code{"ridgereg"}.
@@ -56,38 +71,45 @@ ridgereg <- function(formula, data, lambda) {
 #' @export
 print.ridgereg <- function(x, ...) {
   cat("Call:\n")
-  print(x$formula)
+  print(x$formula, ...)
   cat("\nCoefficients:\n")
-  print(drop(x$coefficients))
+  print(drop(x$coefficients), ...)
   invisible(x)
 }
+
 #' Predict method for ridgereg objects
 #'
 #' @param object An object of class \code{"ridgereg"}.
 #' @param newdata Optional data frame for prediction. If omitted, fitted values are returned.
-#' @param ... Additional arguments (ignored).
 #'
 #' @importFrom stats model.matrix delete.response terms
 #'
 #' @return A numeric vector of predicted values.
 #' @export
-predict.ridgereg <- function(object, newdata = NULL, ...) {
+predict.ridgereg <- function(object, newdata = NULL) {
   if (is.null(newdata)) {
     return(drop(object$fitted_values))
   } else {
-    X_new <- model.matrix(delete.response(terms(object$formula)), newdata)
-    X_scaled <- scale(X_new[, -1])
-    X_new <- cbind(Intercept = 1, X_scaled)
+    mf_new <- model.frame(
+      delete.response(object$terms),
+      data = newdata,
+      xlev = object$xlevels
+    )
+    X_new <- model.matrix(
+      delete.response(object$terms),
+      data = mf_new,
+      contrasts.arg = object$contrasts
+    )
     return(drop(X_new %*% object$coefficients))
   }
 }
+
 #' Extract coefficients from ridgereg object
 #'
 #' @param object An object of class \code{"ridgereg"}.
-#' @param ... Additional arguments (ignored).
 #'
 #' @return A numeric vector of ridge regression coefficients.
 #' @export
-coef.ridgereg <- function(object, ...) {
+coef.ridgereg <- function(object) {
   drop(object$coefficients)
 }

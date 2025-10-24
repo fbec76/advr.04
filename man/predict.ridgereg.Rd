@@ -4,14 +4,12 @@
 \alias{predict.ridgereg}
 \title{Predict method for ridgereg objects}
 \usage{
-\method{predict}{ridgereg}(object, newdata = NULL, ...)
+\method{predict}{ridgereg}(object, newdata = NULL)
 }
 \arguments{
 \item{object}{An object of class \code{"ridgereg"}.}
 
 \item{newdata}{Optional data frame for prediction. If omitted, fitted values are returned.}
-
-\item{...}{Additional arguments (ignored).}
 }
 \value{
 A numeric vector of predicted values.

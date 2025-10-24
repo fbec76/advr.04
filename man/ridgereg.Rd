@@ -22,4 +22,6 @@ An object of class \code{"ridgereg"} containing:
 \description{
 Computes ridge regression coefficients and fitted values based on a given formula, dataset, and regularization parameter, lambda.
 The predictors are normalized before fitting the model.
+With penalized least-squares.
+Uses OR Decomposition for lambda == 0
 }

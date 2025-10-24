@@ -1,0 +1,184 @@
+---
+title: "ridgereg"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ridgereg}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Demonstration of a simple prediction workflow using the package's own `ridgereg()` function together with `caret` to compare:
+
+- ordinary least squares,
+- forward selection,
+- and ridge regression (with tuning of \(\lambda\)).
+
+Also includes an intercept-only baseline to ensure the forward-selection comparison considers models from 0 up to \(n\) covariates.
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+# Setup
+
+```{r setup}
+set.seed(123)
+
+library(advr.04)
+library(mlbench)
+library(caret)
+library(leaps)
+```
+
+# Load and split data
+
+We use the BostonHousing dataset from the `mlbench` package and split it 80/20 into training and test sets using `caret::createDataPartition()`.
+
+```{r data-split}
+data(BostonHousing)
+Boston <- na.omit(BostonHousing)
+
+trainIndex <- caret::createDataPartition(Boston$medv, p = 0.8, list = FALSE)
+housingTrain <- Boston[trainIndex,]
+housingTest <- Boston[-trainIndex,]
+
+p <- ncol(housingTrain) - 1L
+predictor_names <- setdiff(names(housingTrain), "medv")
+```
+
+# OLS linear regression
+Linear model using all covariates.
+
+```{r fit-ols}
+fit_lm <- caret::train(
+  x = subset(housingTrain, select = -medv),
+  y = housingTrain$medv,
+  method = "lm"
+)
+fit_lm
+```
+
+# Forward selection of covariates
+Use caret’s `lmStepAIC` (AIC-based stepwise selection, since `leapForward` does not support intercept model) with `direction = "forward"`,
+starting from the intercept-only (null) model. By specifying the scope `list(lower = ~ 1, upper = ~ .)`,
+the procedure can select among models with 0, 1, ..., n predictors.
+Evaluate it with 10-fold cross-validation via `trainControl(method = "cv", number = 10)`.
+
+```{r fit-forward}
+set.seed(123)
+full_rhs <- stats::reformulate(termlabels = setdiff(names(housingTrain), "medv"))
+
+ctrl_cv_fwd <- caret::trainControl(method = "cv", number = 10)
+
+fit_forward <- caret::train(
+  x = subset(housingTrain, select = -medv),
+  y = housingTrain$medv,
+  method = "lmStepAIC",
+  trControl = ctrl_cv_fwd,
+  direction = "forward",
+  trace = 0,
+  scope = list(lower = ~1, upper = full_rhs)
+)
+
+fit_forward
+summary(fit_forward$finalModel)
+```
+
+# Ridge regression using `ridgereg()` via a custom `caret` model
+
+Register a minimal custom caret model that calls the package's `ridgereg()` function.
+
+Tune \(\lambda\) using 10-fold cross-validation. A log-spaced grid is often more effective for regularization paths
+
+```{r custom-ridgereg-define}
+model_ridgereg <- list(
+  label = "Custom ridgereg",
+  library = "advr.04",
+  type = "Regression",
+  parameters = data.frame(
+    parameter = "lambda",
+    class = "numeric",
+    label = "Lambda"
+  ),
+  grid = function(x, y, len = NULL, search = "grid") {
+    if (is.null(len) || len < 2L) len <- 15L
+    if (search == "grid") {
+      lam <- unique(c(0, exp(seq(log(1e-3), log(1e3), length.out = len - 1L))))
+      data.frame(lambda = lam)
+    } else {
+      data.frame(lambda = stats::runif(len, min = 0, max = 100))
+    }
+  },
+  fit = function(x, y, wts, param, lev, last, classProbs, ...) {
+    df <- data.frame(y = y, x)
+    ridge_formula <- stats::reformulate(termlabels = colnames(x), response = "y")
+    ridgereg(ridge_formula, data = df, lambda = param$lambda, ...)
+  },
+  predict = function(modelFit, newdata, submodels = NULL) {
+    newdata <- as.data.frame(newdata)
+    predict(modelFit, newdata = newdata)
+  },
+  prob = NULL
+)
+```
+
+Tune \(\lambda\) with 10-fold CV on the training set.
+
+```{r tune-ridge}
+ctrl_cv <- caret::trainControl(method = "cv", number = 10)
+
+lambda_grid <- model_ridgereg$grid(
+  x = subset(housingTrain, select = -medv),
+  y = housingTrain$medv,
+  len = 21, search = "grid"
+)
+
+set.seed(123)
+fit_ridge <- caret::train(
+  x = subset(housingTrain, select = -medv),
+  y = housingTrain$medv,
+  method = model_ridgereg,
+  trControl = ctrl_cv,
+  tuneGrid = lambda_grid
+)
+
+fit_ridge
+```
+
+Best \(\lambda\) and coefficients.
+
+```{r best-lambda}
+best_lambda <- fit_ridge$bestTune$lambda
+best_lambda
+
+coef(fit_ridge$finalModel)
+```
+# Test-set evaluation and comparison
+
+Evaluate all models on the held-out test dataset.
+
+```{r eval-test}
+pred_test_lm <- predict(fit_lm, housingTest)
+pred_test_forward <- predict(fit_forward, housingTest)
+pred_test_ridge <- predict(fit_ridge, housingTest)
+
+res_test_lm <- caret::postResample(pred = pred_test_lm, obs = housingTest$medv)
+res_test_forward <- caret::postResample(pred = pred_test_forward, obs = housingTest$medv)
+res_test_ridge <- caret::postResample(pred = pred_test_ridge, obs = housingTest$medv)
+
+res_test_lm
+res_test_forward
+res_test_ridge
+```
+
+# Summary of results
+On the test set, the full linear and forward-selection models perform identically (RMSE ≈ 4.589, \(R^2\) ≈ 0.761, MAE ≈ 3.365),
+implying forward selection chose essentially the same predictors.
+Ridge is marginally better on all metrics (RMSE 4.587, \(R^2\) 0.762, MAE 3.363), likely from shrinkage stabilizing coefficients.
+These gains are tiny and likely within sampling noise, but show ridge can match or slightly exceed OLS.

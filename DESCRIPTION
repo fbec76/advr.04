@@ -1,10 +1,10 @@
 Package: advr.04
-Title: Object-oriented implementation of ordinary least squares linear regression
+Title: Object-oriented implementation of ordinary least squares linear and ridge regression
 Version: 0.0.0.9000
 Authors@R: 
     person("Finn", "Beckmann", , "finbe486@student.liu.se", role = c("aut", "cre"))
     person("Max", "Goldbeck-Löwe", , "maxgo900@student.liu.se", role = c("aut", "cre"))
-Description: Object-oriented implementation of ordinary least squares linear regression.
+Description: Object-oriented implementation of ordinary least squares linear and ridge regression.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -13,7 +13,10 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
-    MASS
+    MASS,
+    mlbench,
+    caret,
+    leaps
 Config/testthat/edition: 3
 Imports:
     methods,

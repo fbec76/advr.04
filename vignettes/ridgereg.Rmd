@@ -184,7 +184,7 @@ On the test set, the full linear and forward-selection models perform identicall
 - \(R^2\) \( \approx 0.761\)
 - MAE \( \approx 3.365\)
 
-implying forward selection chose essentially the same predictors.
+Implying forward selection chose essentially the same predictors.
 
 Ridge regression is marginally better on all metrics
 
@@ -192,4 +192,4 @@ Ridge regression is marginally better on all metrics
 - \(R^2\) \( \approx 0.762\)
 - MAE \( \approx 3.363\)
 
-These gains are tiny and likely within sampling noise, but show ridge can match or slightly exceed OLS.
+These gains are tiny and likely within sampling noise, but indicate that regularization can help even in this moderate-dimensional setting.

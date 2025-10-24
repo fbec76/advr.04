@@ -2,6 +2,8 @@
 #'
 #' Computes ridge regression coefficients and fitted values based on a given formula, dataset, and regularization parameter, lambda.
 #' The predictors are normalized before fitting the model.
+#' With penalized least-squares.
+#' Uses OR Decomposition for lambda == 0
 #'
 #' @param formula A formula object specifying the model. (class: formula)
 #' @param data A data frame containing the variables in the formula.
@@ -26,6 +28,24 @@ ridgereg <- function(formula, data, lambda) {
   X <- model.matrix(trm, data = mf)
   xlevels <- .getXlevels(trm, mf)
   contrasts <- attr(X, "contrasts")
+
+  if (lambda == 0) {
+    # OLS via QR
+    qrX <- qr(X)
+    coefs <- qr.coef(qrX, y)
+    fitted <- drop(X %*% coefs)
+    return(structure(list(
+      formula = formula,
+      terms = trm,
+      xlevels = xlevels,
+      contrasts = contrasts,
+      lambda = 0,
+      coefficients = coefs,
+      x_center = numeric(0),
+      x_scale = numeric(0),
+      fitted_values = fitted
+    ), class = "ridgereg"))
+  }
 
   ybar <- mean(y)
   Xp <- X[, -1, drop = FALSE]
